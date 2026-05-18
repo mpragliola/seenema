@@ -33,9 +33,13 @@ State is held in a small shared object. `pystray` runs in its own thread; tkinte
 ```
 ● Dim ON / ○ Dim OFF
 ─────────────────────────────
-Main display: [DISPLAY1 ▾]
+Main display ▾
+    DISPLAY1 ✓
+    DISPLAY2
 ─────────────────────────────
-Opacity: 90%  [−] [+]
+Opacity ▾
+    10% / 20% / 30% / 40% / 50%
+    60% / 70% / 80% / 90% ✓ / 100%
 ─────────────────────────────
 □ Start with Windows
 ─────────────────────────────
@@ -47,7 +51,7 @@ Quit
 - If only 1 monitor is detected, "Dim ON" is greyed out
 - `main_display` is `null` on first launch; user must select one before dim can be enabled
 - Changing main display while dim is active: immediately removes overlay from new main, adds it to old main
-- Opacity changes in steps of 5%, range 10–100%, applied live to all visible overlays
+- Opacity submenu lists fixed steps (10% to 100% in 10% increments); selected value shown with ✓; applied live to all visible overlays
 - Autostart writes/removes `HKCU\Software\Microsoft\Windows\CurrentVersion\Run\Seenema`
 
 ---
