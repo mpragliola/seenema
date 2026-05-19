@@ -25,4 +25,4 @@ You can build the executable by launching `build.bat`.
 
 ### Download
 
-You can also download the pre-built .exe from the Releases page of this repository.
+You can also download the pre-built .exe from the [Releases](https://github.com/mpragliola/seenema/releases) page of this repository.
