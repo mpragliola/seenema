@@ -1,4 +1,4 @@
-# 🎬Seenema
+# 🎬 Seenema
 
 A small **dimmer tray utility for Windows** for **multi-screen setups**.
 By Marco Pragliola <marcopragliola@gmail.com>
