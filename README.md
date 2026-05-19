@@ -20,6 +20,10 @@ activity requiring visual focus, reducing the distraction from other screens.
 * the dark overlay is **click-through**: paired with opacity, it will not block you
   from interacting with the dimmed displays
 
+<center>
+  <img src="docs/image2.png" width="140">
+</center>
+
 ## Usage
 
 ### Build from source
