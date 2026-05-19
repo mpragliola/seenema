@@ -26,3 +26,7 @@ config.json
 # OS
 Thumbs.db
 .DS_Store
+
+# LLM
+docs/superpowers
+.claude/settings.local.json
