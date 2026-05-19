@@ -9,6 +9,8 @@ When launched, **Seenema** sits in your system tray, and when active it will dim
 all the monitors but one: useful when you need to watch a course, a movie or any other
 activity requiring visual focus, reducing the distraction from other screens.
 
+![Seenema in action](docs/image.png)
+
 ## Features
 
 * tiny executable, no install
