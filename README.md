@@ -14,16 +14,17 @@ activity requiring visual focus, reducing the distraction from other screens.
 ## Features
 
 * tiny executable, no install
-* you can set an **opacity** for the black shroud, to continue being able to see
-  what happens on the other display
-* the black overlay is **click-through**: paired with opacity, it will not block you
+* unobtrusive, sits in the **system tray**
+* you can set an **opacity** for the dark overlay if you still want to keep an eye
+  on what happens on the other displays
+* the dark overlay is **click-through**: paired with opacity, it will not block you
   from interacting with the dimmed displays
 
 ## Usage
 
 ### Build from source
 
-You can build the executable by launching `build.bat`.
+You can build the executable for Windows by launching `build.bat`.
 
 ### Download
 
