@@ -44,9 +44,13 @@ def main():
 
     def on_opacity_step(direction: int) -> None:
         new_opacity = adjust_opacity(state.opacity, direction)
+        if new_opacity == state.opacity:
+            return
         state.opacity = new_opacity
-        save_config(state)
-        root.after(0, lambda: overlay.set_opacity(new_opacity))
+        def do() -> None:
+            save_config(state)
+            overlay.set_opacity(new_opacity)
+        root.after(0, do)
 
     hook = WheelHook(on_step=on_opacity_step)
     hook.start()
