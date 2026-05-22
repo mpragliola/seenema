@@ -3,6 +3,7 @@ import sys
 import tkinter as tk
 
 from src.config import load_config, save_config
+from src.hotkey import WheelHook, adjust_opacity
 from src.monitor import get_monitors, monitors_changed
 from src.overlay import OverlayManager
 from src.tray import TrayApp
@@ -41,12 +42,20 @@ def main():
     )
     tray.run()
 
+    def on_opacity_step(direction: int) -> None:
+        new_opacity = adjust_opacity(state.opacity, direction)
+        state.opacity = new_opacity
+        save_config(state)
+        root.after(0, lambda: overlay.set_opacity(new_opacity))
+
+    hook = WheelHook(on_step=on_opacity_step)
+    hook.start()
+
     def poll_monitors():
         nonlocal monitors
         current = get_monitors()
         if monitors_changed(monitors, current):
             monitors = current
-            # If saved main display is gone, disable dim
             names = {m.name for m in current}
             if state.main_display not in names:
                 state.main_display = None
@@ -59,6 +68,7 @@ def main():
 
     root.after(POLL_INTERVAL_MS, poll_monitors)
     root.mainloop()
+    hook.stop()
 
 
 if __name__ == '__main__':
