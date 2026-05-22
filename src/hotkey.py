@@ -1,0 +1,80 @@
+import ctypes
+import ctypes.wintypes
+import threading
+
+WH_MOUSE_LL = 14
+WM_MOUSEWHEEL = 0x020A
+WM_QUIT = 0x0012
+VK_CONTROL = 0x11
+VK_SHIFT = 0x10
+
+HOOKPROC = ctypes.WINFUNCTYPE(
+    ctypes.c_long,
+    ctypes.c_int,
+    ctypes.wintypes.WPARAM,
+    ctypes.wintypes.LPARAM,
+)
+
+
+class _MSLLHOOKSTRUCT(ctypes.Structure):
+    _fields_ = [
+        ('pt', ctypes.wintypes.POINT),
+        ('mouseData', ctypes.wintypes.DWORD),
+        ('flags', ctypes.wintypes.DWORD),
+        ('time', ctypes.wintypes.DWORD),
+        ('dwExtraInfo', ctypes.POINTER(ctypes.c_ulong)),
+    ]
+
+
+def adjust_opacity(current: float, direction: int) -> float:
+    """Round current to the nearest 5%, step by direction * 5%, clamp to [0.10, 1.0]."""
+    snapped = round(current * 20) / 20
+    new = snapped + direction * 0.05
+    return max(0.10, min(1.0, new))
+
+
+class WheelHook:
+    """Global low-level mouse hook; fires on_step(+1 or -1) on Ctrl+Shift+Wheel."""
+
+    def __init__(self, on_step: callable):
+        self._on_step = on_step
+        self._hook = None
+        self._thread_id: int = 0
+        self._proc = None  # hold reference so WINFUNCTYPE wrapper is not GC'd
+
+    def start(self) -> None:
+        """Install the hook on a new daemon thread with its own message pump."""
+        thread = threading.Thread(target=self._thread_main, daemon=True)
+        thread.start()
+
+    def stop(self) -> None:
+        """Post WM_QUIT to the hook thread to unwind its message pump."""
+        if self._thread_id:
+            ctypes.windll.user32.PostThreadMessageW(self._thread_id, WM_QUIT, 0, 0)
+            self._thread_id = 0
+
+    def _hook_proc(self, nCode: int, wParam: int, lParam: int) -> int:
+        if nCode >= 0 and wParam == WM_MOUSEWHEEL:
+            ctrl = ctypes.windll.user32.GetAsyncKeyState(VK_CONTROL) & 0x8000
+            shift = ctypes.windll.user32.GetAsyncKeyState(VK_SHIFT) & 0x8000
+            if ctrl and shift:
+                info = ctypes.cast(lParam, ctypes.POINTER(_MSLLHOOKSTRUCT)).contents
+                raw_delta = ctypes.c_short(info.mouseData >> 16).value
+                direction = 1 if raw_delta > 0 else -1
+                self._on_step(direction)
+        return ctypes.windll.user32.CallNextHookEx(self._hook, nCode, wParam, lParam)
+
+    def _thread_main(self) -> None:
+        self._proc = HOOKPROC(self._hook_proc)
+        self._hook = ctypes.windll.user32.SetWindowsHookExW(
+            WH_MOUSE_LL, self._proc, None, 0
+        )
+        if not self._hook:
+            return
+        self._thread_id = ctypes.windll.kernel32.GetCurrentThreadId()
+        msg = ctypes.wintypes.MSG()
+        while ctypes.windll.user32.GetMessageW(ctypes.byref(msg), None, 0, 0) > 0:
+            ctypes.windll.user32.TranslateMessage(ctypes.byref(msg))
+            ctypes.windll.user32.DispatchMessageW(ctypes.byref(msg))
+        ctypes.windll.user32.UnhookWindowsHookEx(self._hook)
+        self._hook = None
