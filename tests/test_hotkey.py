@@ -14,7 +14,12 @@ def test_adjust_opacity_clamps_at_max():
 
 
 def test_adjust_opacity_clamps_at_min():
-    assert abs(adjust_opacity(0.10, -1) - 0.10) < 0.001
+    assert abs(adjust_opacity(0.05, -1) - 0.05) < 0.001
+
+
+def test_adjust_opacity_reaches_five_percent():
+    # 0.10 - 0.05 = 0.05 (now allowed)
+    assert abs(adjust_opacity(0.10, -1) - 0.05) < 0.001
 
 
 def test_adjust_opacity_snaps_then_steps_up():

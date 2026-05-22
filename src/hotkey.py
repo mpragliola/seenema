@@ -28,10 +28,10 @@ class _MSLLHOOKSTRUCT(ctypes.Structure):
 
 
 def adjust_opacity(current: float, direction: int) -> float:
-    """Round current to the nearest 5%, step by direction * 5%, clamp to [0.10, 1.0]."""
+    """Round current to the nearest 5%, step by direction * 5%, clamp to [0.05, 1.0]."""
     snapped = round(current * 20) / 20
     new = snapped + direction * 0.05
-    return max(0.10, min(1.0, new))
+    return max(0.05, min(1.0, new))
 
 
 class WheelHook:
@@ -53,6 +53,8 @@ class WheelHook:
         thread = threading.Thread(target=self._thread_main, daemon=True)
         thread.start()
         self._ready.wait()
+        if self._error:
+            raise self._error
 
     def stop(self) -> None:
         """Post WM_QUIT to the hook thread to unwind its message pump."""
