@@ -10,7 +10,7 @@
 #   ─────────────────
 #   Main display >         — radio group: which monitor to leave uncovered
 #   ─────────────────
-#   Opacity >              — radio group: 10 % … 100 % in 10 % steps
+#   Opacity >              — radio group: 5 % … 100 % in 5 % steps
 #   ─────────────────
 #   Start with Windows     — checkbox: Windows Run-key autostart
 #   ─────────────────
@@ -24,9 +24,9 @@ from src.monitor import MonitorInfo
 from src.autostart import enable_autostart, disable_autostart
 from src.overlay import OverlayManager
 
-# Pre-computed opacity levels: [0.10, 0.20, …, 1.00]
+# Pre-computed opacity levels: [0.05, 0.10, …, 1.00]
 # Using integer arithmetic to avoid floating-point drift (e.g. 0.30000000000000004).
-_OPACITY_STEPS = [i / 100 for i in range(10, 110, 10)]
+_OPACITY_STEPS = [i / 100 for i in range(5, 105, 5)]
 
 
 def _load_icon_image(path: str) -> Image.Image:
