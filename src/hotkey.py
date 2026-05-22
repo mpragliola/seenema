@@ -1,6 +1,7 @@
 import ctypes
 import ctypes.wintypes
 import threading
+from collections.abc import Callable
 
 WH_MOUSE_LL = 14
 WM_MOUSEWHEEL = 0x020A
@@ -22,7 +23,7 @@ class _MSLLHOOKSTRUCT(ctypes.Structure):
         ('mouseData', ctypes.wintypes.DWORD),
         ('flags', ctypes.wintypes.DWORD),
         ('time', ctypes.wintypes.DWORD),
-        ('dwExtraInfo', ctypes.POINTER(ctypes.c_ulong)),
+        ('dwExtraInfo', ctypes.c_uint64),
     ]
 
 
@@ -36,16 +37,22 @@ def adjust_opacity(current: float, direction: int) -> float:
 class WheelHook:
     """Global low-level mouse hook; fires on_step(+1 or -1) on Ctrl+Shift+Wheel."""
 
-    def __init__(self, on_step: callable):
+    def __init__(self, on_step: Callable[[int], None]) -> None:
         self._on_step = on_step
         self._hook = None
         self._thread_id: int = 0
         self._proc = None  # hold reference so WINFUNCTYPE wrapper is not GC'd
+        self._ready: threading.Event | None = None
+        self._error: OSError | None = None
 
     def start(self) -> None:
         """Install the hook on a new daemon thread with its own message pump."""
+        if self._thread_id:
+            return  # already running
+        self._ready = threading.Event()
         thread = threading.Thread(target=self._thread_main, daemon=True)
         thread.start()
+        self._ready.wait()
 
     def stop(self) -> None:
         """Post WM_QUIT to the hook thread to unwind its message pump."""
@@ -61,7 +68,10 @@ class WheelHook:
                 info = ctypes.cast(lParam, ctypes.POINTER(_MSLLHOOKSTRUCT)).contents
                 raw_delta = ctypes.c_short(info.mouseData >> 16).value
                 direction = 1 if raw_delta > 0 else -1
-                self._on_step(direction)
+                try:
+                    self._on_step(direction)
+                except Exception:
+                    pass
         return ctypes.windll.user32.CallNextHookEx(self._hook, nCode, wParam, lParam)
 
     def _thread_main(self) -> None:
@@ -70,8 +80,11 @@ class WheelHook:
             WH_MOUSE_LL, self._proc, None, 0
         )
         if not self._hook:
+            self._error = ctypes.WinError()
+            self._ready.set()
             return
         self._thread_id = ctypes.windll.kernel32.GetCurrentThreadId()
+        self._ready.set()
         msg = ctypes.wintypes.MSG()
         while ctypes.windll.user32.GetMessageW(ctypes.byref(msg), None, 0, 0) > 0:
             ctypes.windll.user32.TranslateMessage(ctypes.byref(msg))
