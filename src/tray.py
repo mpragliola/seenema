@@ -100,24 +100,28 @@ class TrayApp:
         self._icon.update_menu()
 
     def _build_menu(self) -> pystray.Menu:
-        # The "Dim" toggle is only usable when a main display has been chosen AND
-        # there is at least one secondary monitor to cover.  Disabling it prevents
-        # the user from activating dimming in a state where it would have no effect.
         can_dim = (
-            self._state.main_display is not None
-            and len(self._monitors) > 1
+            self._state.dim_all
+            or (self._state.main_display is not None and len(self._monitors) > 1)
         )
 
         dim_label = 'Dim: ON' if self._state.dim_enabled else 'Dim: OFF'
 
+        all_screens_item = pystray.MenuItem(
+            'All screens',
+            self._set_all_screens,
+            checked=lambda item: self._state.dim_all,
+            radio=True,
+        )
+
         # One radio item per connected monitor; the checked item reflects AppState.main_display.
         # The `n=m.name` default-argument capture is required because Python closures
         # capture variables by reference — without it all lambdas would share the last `m`.
-        display_items = [
+        display_items = [all_screens_item] + [
             pystray.MenuItem(
                 m.name,
                 self._make_set_display(m.name),
-                checked=lambda item, n=m.name: self._state.main_display == n,
+                checked=lambda item, n=m.name: (not self._state.dim_all) and self._state.main_display == n,
                 radio=True,
             )
             for m in self._monitors
@@ -155,13 +159,33 @@ class TrayApp:
             pystray.MenuItem('Quit', self._quit),
         )
 
+    def _set_all_screens(self, icon, item):
+        """Select 'All screens' mode: dim every monitor with live mouse-position clamping."""
+        self._state.dim_all = True
+        self._state.main_display = None
+        save_config(self._state)
+
+        monitors = self._monitors
+
+        def do():
+            self._overlay.rebuild_all(monitors)
+            if self._state.dim_enabled:
+                self._overlay.show(self._state.opacity)
+                start_poll = getattr(self._state, '_start_mouse_poll', None)
+                if start_poll:
+                    start_poll()
+
+        self._schedule(do)
+        self._refresh_menu()
+
     def _make_set_display(self, name: str):
-        """Return a menu callback that sets `name` as the main (unovered) display.
+        """Return a menu callback that sets `name` as the main (uncovered) display.
 
         Creating the handler via a factory function rather than a lambda ensures `name`
         is bound at definition time, not at call time (the classic loop-closure pitfall).
         """
         def handler(icon, item):
+            self._state.dim_all = False
             self._state.main_display = name
             save_config(self._state)
 
@@ -204,6 +228,10 @@ class TrayApp:
             opacity = self._state.opacity
             def do():
                 self._overlay.show(opacity)
+                if self._state.dim_all:
+                    start_poll = getattr(self._state, '_start_mouse_poll', None)
+                    if start_poll:
+                        start_poll()
 
         # dim_enabled is intentionally not saved to disk — see config.py.
         self._schedule(do)
