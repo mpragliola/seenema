@@ -11,6 +11,7 @@
 
 import ctypes
 import tkinter as tk
+from src.config import DIM_ALL_MIN_OPACITY
 from src.monitor import MonitorInfo
 
 # Win32 constants for GetWindowLongW / SetWindowLongW
@@ -146,6 +147,9 @@ class OverlayManager:
         # an explicit opacity argument.
         self._opacity = 0.90
 
+        # True when rebuild_all() is active (every monitor covered).
+        self._dim_all = False
+
     def rebuild(self, monitors: list[MonitorInfo], main_display: str | None) -> None:
         """Destroy existing overlay windows and create fresh ones for the current monitor layout.
 
@@ -160,6 +164,8 @@ class OverlayManager:
         for w in self._windows:
             w.destroy()
 
+        self._dim_all = False
+
         # Create one overlay per non-main monitor.
         self._windows = [
             _OverlayWindow(self._root, m)
@@ -169,6 +175,16 @@ class OverlayManager:
 
         # Restore visibility on the new windows so the caller doesn't need to call show()
         # again after every monitor-layout change.
+        if self._visible:
+            for w in self._windows:
+                w.show(self._opacity)
+
+    def rebuild_all(self, monitors: list[MonitorInfo]) -> None:
+        """Destroy existing windows and create an overlay on every monitor."""
+        for w in self._windows:
+            w.destroy()
+        self._dim_all = True
+        self._windows = [_OverlayWindow(self._root, m) for m in monitors]
         if self._visible:
             for w in self._windows:
                 w.show(self._opacity)
@@ -200,7 +216,25 @@ class OverlayManager:
             for w in self._windows:
                 w.set_opacity(opacity)
 
+    def set_mouse_monitor(self, name: str | None) -> None:
+        """Apply DIM_ALL_MIN_OPACITY floor to the monitor under the cursor.
+
+        All other monitors get the bare stored opacity. No-op when hidden.
+        """
+        if not self._visible:
+            return
+        for w in self._windows:
+            if w.monitor_name == name:
+                w.set_opacity(max(self._opacity, DIM_ALL_MIN_OPACITY))
+            else:
+                w.set_opacity(self._opacity)
+
     @property
     def is_visible(self) -> bool:
         """True if the overlay is currently shown on screen."""
         return self._visible
+
+    @property
+    def dim_all(self) -> bool:
+        """True if every monitor is covered (no main display exclusion)."""
+        return self._dim_all
