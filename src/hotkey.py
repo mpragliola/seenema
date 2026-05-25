@@ -63,6 +63,10 @@ class WheelHook:
             self._thread_id = 0
 
     def _hook_proc(self, nCode: int, wParam: int, lParam: int) -> int:
+        # Call next hook and return immediately — low-level hook procs have a hard
+        # timeout (~300 ms) after which Windows unhooks them and stops delivering
+        # mouse events system-wide.  Any real work must be dispatched asynchronously.
+        result = ctypes.windll.user32.CallNextHookEx(self._hook, nCode, wParam, lParam)
         if nCode >= 0 and wParam == WM_MOUSEWHEEL:
             ctrl = ctypes.windll.user32.GetAsyncKeyState(VK_CONTROL) & 0x8000
             shift = ctypes.windll.user32.GetAsyncKeyState(VK_SHIFT) & 0x8000
@@ -70,11 +74,9 @@ class WheelHook:
                 info = ctypes.cast(lParam, ctypes.POINTER(_MSLLHOOKSTRUCT)).contents
                 raw_delta = ctypes.c_short(info.mouseData >> 16).value
                 direction = 1 if raw_delta > 0 else -1
-                try:
-                    self._on_step(direction)
-                except Exception:
-                    pass
-        return ctypes.windll.user32.CallNextHookEx(self._hook, nCode, wParam, lParam)
+                # Fire the callback on a separate thread so this proc returns instantly.
+                threading.Thread(target=self._on_step, args=(direction,), daemon=True).start()
+        return result
 
     def _thread_main(self) -> None:
         self._proc = HOOKPROC(self._hook_proc)
