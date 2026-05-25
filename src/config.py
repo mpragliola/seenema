@@ -12,6 +12,8 @@ import json
 import os
 from dataclasses import dataclass, asdict
 
+DIM_ALL_MIN_OPACITY = 0.10
+
 
 @dataclass
 class AppState:
@@ -30,6 +32,7 @@ class AppState:
     opacity: float = 0.90
     autostart: bool = False
     dim_enabled: bool = False   # intentionally not persisted — see save_config()
+    dim_all: bool = False
 
 
 def _get_default_config_path() -> str:
@@ -77,6 +80,7 @@ def load_config(path: str | None = None) -> AppState:
             # Never restore dim_enabled from disk — the user always starts with
             # dimming off and activates it manually via the tray menu.
             dim_enabled=False,
+            dim_all=bool(data.get('dim_all', False)),
         )
     except (FileNotFoundError, json.JSONDecodeError, ValueError):
         # Missing file → first run; bad JSON → corrupted config.  Either way,
