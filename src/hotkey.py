@@ -10,7 +10,7 @@ VK_CONTROL = 0x11
 VK_SHIFT = 0x10
 
 HOOKPROC = ctypes.WINFUNCTYPE(
-    ctypes.c_long,
+    ctypes.c_longlong,
     ctypes.c_int,
     ctypes.wintypes.WPARAM,
     ctypes.wintypes.LPARAM,
@@ -79,6 +79,14 @@ class WheelHook:
         return result
 
     def _thread_main(self) -> None:
+        # Set argtypes/restype so ctypes passes the 64-bit lParam pointer correctly.
+        ctypes.windll.user32.CallNextHookEx.argtypes = [
+            ctypes.c_void_p,
+            ctypes.c_int,
+            ctypes.wintypes.WPARAM,
+            ctypes.wintypes.LPARAM,
+        ]
+        ctypes.windll.user32.CallNextHookEx.restype = ctypes.c_longlong
         self._proc = HOOKPROC(self._hook_proc)
         self._hook = ctypes.windll.user32.SetWindowsHookExW(
             WH_MOUSE_LL, self._proc, None, 0
