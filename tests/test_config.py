@@ -44,6 +44,27 @@ def test_save_and_reload(tmp_path):
     assert abs(reloaded.opacity - 0.80) < 0.001
 
 
+def test_dim_all_defaults_to_false(tmp_path):
+    path = tmp_path / "config.json"
+    state = load_config(str(path))
+    assert state.dim_all is False
+
+
+def test_dim_all_persisted_and_reloaded(tmp_path):
+    path = str(tmp_path / "config.json")
+    state = AppState(main_display=None, opacity=0.80, autostart=False, dim_enabled=False, dim_all=True)
+    save_config(state, path)
+    reloaded = load_config(path)
+    assert reloaded.dim_all is True
+
+
+def test_dim_all_not_in_saved_json_defaults_false(tmp_path):
+    path = tmp_path / "config.json"
+    path.write_text('{"opacity": 0.5}')
+    state = load_config(str(path))
+    assert state.dim_all is False
+
+
 def test_opacity_clamped_on_load(tmp_path):
     path = tmp_path / "config.json"
     path.write_text(json.dumps({"opacity": 1.5}))
