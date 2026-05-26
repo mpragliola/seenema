@@ -44,7 +44,7 @@ def get_monitors() -> list[MonitorInfo]:
         raw = screeninfo.get_monitors()
         return [
             MonitorInfo(
-                name=m.name,
+                name=m.name or "",
                 x=m.x,
                 y=m.y,
                 width=m.width,
