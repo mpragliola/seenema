@@ -17,6 +17,7 @@
 #   Quit
 
 import threading
+from collections.abc import Callable
 import pystray
 from PIL import Image
 from src.config import AppState, save_config
@@ -65,8 +66,8 @@ class TrayApp:
         overlay: OverlayManager,
         monitors: list[MonitorInfo],
         icon_path: str,
-        on_quit: callable,
-        schedule: callable,
+        on_quit: Callable,
+        schedule: Callable,
     ):
         self._state = state
         self._overlay = overlay
